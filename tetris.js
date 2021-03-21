@@ -331,11 +331,12 @@ function hardDrop(){
 
 function touchStarted(e){
     // fix double trigger
-    if(e.type !== "touchstart") return;
+    if(e.type !== "touchstart") return true;
     prevMoveMouseX = mouseX;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     hasMovedTetromino = false;
+    return false;
 }
 
 function touchMoved(e){
@@ -356,10 +357,11 @@ function touchMoved(e){
         currTimeStep = TIME_STEP;
         hasMovedTetromino = true;
     }
+    return false;
 }
 
 function touchEnded(e){
-    if(e.type !== "touchend") return true;
+    if(e.type !== "touchend") return false;
     let dx = mouseX - prevMouseX;
     let dy = mouseY - prevMouseY;
     let distSq = dx*dx + dy*dy;
