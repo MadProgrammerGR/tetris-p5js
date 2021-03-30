@@ -8,14 +8,17 @@ alert(`HOW TO PLAY:
 Have fun!
 `);
 
-const ROWS = 16;
+const ROWS = 18;
 const COLS = 10;
-const TIME_STEP = 1000;
+const TIME_STEP = 800;
 const SOFT_DROP_TIME_STEP = 120;
 const LOCK_TIME = 500;
 const MAX_MOVES_UNTIL_LOCK = 15;
 const SWIPE_DEADZONE = 90;
 const DANGER_ROWS = 1;
+const SCORE_LOCK = 5;
+const SCORE_DROP = 10;
+const SCORE_CLEAR = 50;
 
 var grid;
 var size;
@@ -32,6 +35,7 @@ var prevMouseX, prevMouseY, prevMoveMouseX;
 var tetrQueue = [];
 var completeRows;
 var numCleared = 0;
+var score = 0;
 
 
 
@@ -198,10 +202,13 @@ function setup(){
     initGrid();
     completeRows = new Array(ROWS);
     updateTime = Date.now() + TIME_STEP;
+    scoreElm = document.querySelector("#score span");
 }
 
 function draw(){
-    updateDifficulty();
+    if(currTimeStep != SOFT_DROP_TIME_STEP ){
+        updateDifficulty();
+    }
     let now = Date.now();
     if(!tetromino || tetromino.locked){
         tetromino = spawnTetromino();
@@ -223,21 +230,29 @@ function draw(){
     if(shouldLock && (now > lockTime || movesUntilLock == 0)){
         shouldLock = false;
         tetromino.lock();
+        updateScore(Math.random()*SCORE_LOCK+1);
         markCompleteRows();
     }
     fadeOutCompleteRows();
     
-    background(20,20,20);
+    background(51,51,51);
     showGridLines();
     showGrid();
     tetromino.showGhost();
     tetromino.show();
 }
 
+function updateScore(reward){
+    score += Math.floor(reward);
+    scoreElm.textContent = score;
+    scoreElm.className = "";
+    setTimeout(()=>{scoreElm.className = "score-anim";},0);
+}
+
 function updateDifficulty(){
-    // increase speed by +25% every 3 clears
+    // increase speed by +25% every 5 clears
     // until it reaches soft drop speed
-    currTimeStep = Math.max(TIME_STEP/(1.25**Math.floor(numCleared/3)), SOFT_DROP_TIME_STEP);
+    currTimeStep = Math.max(TIME_STEP/(1.25**Math.floor(numCleared/5)), SOFT_DROP_TIME_STEP);
 }
 
 function fadeOutCompleteRows(){
@@ -250,6 +265,7 @@ function fadeOutCompleteRows(){
                 grid.unshift(new Array(COLS));
                 completeRows[r] = false;
                 numCleared++;
+                updateScore(SCORE_CLEAR);
                 break;
             }
             c.setAlpha(a*0.8);
@@ -326,17 +342,17 @@ function hardDrop(){
     }
     shouldLock = false;
     tetromino.lock();
+    updateScore(Math.random()*SCORE_DROP+1);
     markCompleteRows();
 }
 
 function touchStarted(e){
     // fix double trigger
-    if(e.type !== "touchstart") return true;
+    if(e.type !== "touchstart") return;
     prevMoveMouseX = mouseX;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     hasMovedTetromino = false;
-    return false;
 }
 
 function touchMoved(e){
@@ -357,11 +373,10 @@ function touchMoved(e){
         currTimeStep = TIME_STEP;
         hasMovedTetromino = true;
     }
-    return false;
 }
 
 function touchEnded(e){
-    if(e.type !== "touchend") return false;
+    if(e.type !== "touchend") return true;
     let dx = mouseX - prevMouseX;
     let dy = mouseY - prevMouseY;
     let distSq = dx*dx + dy*dy;
@@ -417,11 +432,13 @@ function showBlock(r,c,clr,strk){
     rect(c*size, r*size, size, size, roundness);
     
     noStroke();
-    let clrLight = color(255,255,255,0.5*alpha(clr));
+    let clrLight = lerpColor(clr,color(255),0.25);
+    clrLight.setAlpha(alpha(clr));
     fill(clrLight);
     rect(c*size, r*size, size, size*0.2, roundness);
     
-    let clrDark = color(0,0,0,60);
+    let clrDark = lerpColor(clr,color(0),0.25);
+    clrDark.setAlpha(alpha(clr))
     fill(clrDark);
     rect(c*size, r*size+size*0.8, size, size*0.2,roundness);
 }
